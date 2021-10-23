@@ -1,22 +1,12 @@
-from imutils.video import VideoStream
+from imutils.video import FileVideoStream
 from PIL import Image, ImageDraw
-from cv2 import flip, resize, imshow, waitKey, rectangle
+from cv2 import flip, resize, imshow, waitKey, rectangle, putText
 from time import sleep, time
 from pycoral.utils.dataset import read_label_file
 from pycoral.utils.edgetpu import make_interpreter
 from pycoral.adapters import common, detect
 
-THRESHOLD=0.7
-
-def draw_objects(draw, objs, labels):
-  """Draws the bounding box and label for each object."""
-  for obj in objs:
-    bbox = obj.bbox
-    draw.rectangle([(bbox.xmin, bbox.ymin), (bbox.xmax, bbox.ymax)],
-                   outline='red')
-    draw.text((bbox.xmin + 10, bbox.ymin + 10),
-              '%s\n%.2f' % (labels.get(obj.id, obj.id), obj.score),
-              fill='red')
+THRESHOLD=0.2
 
 def drawBoundingBoxes(imageData, inferenceResults, color):
     """Draw bounding boxes on an image.
@@ -29,12 +19,13 @@ def drawBoundingBoxes(imageData, inferenceResults, color):
     for res in inferenceResults:
       bbox = res.bbox
       rectangle(imageData,(bbox.xmin, bbox.ymin), (bbox.xmax, bbox.ymax), color, thick)
+      putText(imageData, f'{res.score*100:2.0f}%', (bbox.xmax+10,bbox.ymax), 0, 0.3, (0,255,0))
 
 labels = read_label_file('labels.txt')
 interpreter = make_interpreter('efficientdet-lite0-wider_edgetpu.tflite')
 interpreter.allocate_tensors()
 
-video_stream = VideoStream(src=0).start()
+video_stream = FileVideoStream('./videos/1.mp4').start()
 sleep(1.0)
 
 frames = 0
@@ -53,7 +44,7 @@ while True:
     frames += 1
     nowts = time()
     if nowts - measure_start_ts > 5:
-      print(frames // 5)
+      print(f'FPS: {frames//5}')
       measure_start_ts = nowts
       frames = 0
 
